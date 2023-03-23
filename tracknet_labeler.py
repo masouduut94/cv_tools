@@ -96,7 +96,7 @@ def init(df, bool_cols=(), int_cols=(), str_cols=()):
 
 
 if __name__ == '__main__':
-    videofile = "E:/TVConal/TableTennis/codes/videos/behind_cam.mp4"
+    videofile = "path/to/videos"
 
     columns = [
         'x',
