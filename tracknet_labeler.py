@@ -9,6 +9,7 @@ Data must be like this:
 frame | x | y | toss | end_toss | exclude | exclude-end
 """
 
+
 def check_fno(fno, total_frame):
     """
     check if suggested frame number is not invalid based on video number of frames.
@@ -96,7 +97,7 @@ def init(df, bool_cols=(), int_cols=(), str_cols=()):
 
 
 if __name__ == '__main__':
-    videofile = "path/to/video.mp4"
+    videofile = "videos/rally5.mp4"
 
     columns = [
         'x',
@@ -129,7 +130,7 @@ if __name__ == '__main__':
     cap = cv2.VideoCapture(videofile)
     assert cap.isOpened(), "file is not opened!"
     name = Path(videofile).stem
-    filepath = 'E:/TVConal/TableTennis/codes/labels'
+    filepath = 'labels'
     save_path = join(filepath, name + '.csv')
 
     w, h, fps, _, n_frames = [int(cap.get(i)) for i in range(3, 8)]
