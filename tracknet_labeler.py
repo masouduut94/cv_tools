@@ -30,13 +30,18 @@ def check_fno(fno, total_frame):
         return True
 
 
-def to_frame(cap, df, n, total_frame):
+def to_frame(cap, df, n, total_frame, save=False, custom_msg=None):
     print('current frame: ', n)
     cap.set(cv2.CAP_PROP_POS_FRAMES, n)
     ret, frame = cap.read()
-
-    message = init_message(df, n, msg_columns)
-
+    if save:
+        save_data(df, save_path)
+        print("The data is saved")
+    if not (n >= total_frame):
+        message = init_message(df, n, msg_cols, custom_msg)
+    else:
+        df = save_data(df, save_path)
+        print("frame index bigger than number of frames.")
     if not ret:
         return None
     else:
@@ -63,7 +68,7 @@ def click_and_crop(event, x, y, flags, param):
         frame = to_frame(cap, df, current, n_frames)
 
 
-def init_message(df, index, columns):
+def init_message(df, index, columns, custom_msg=None):
     # data = df.iloc[index]
     st = ''
 
@@ -71,102 +76,84 @@ def init_message(df, index, columns):
         if df.at[index, col]:
             st += f'| {col}'
 
+    st = custom_msg if custom_msg is not None else st
+
     return st
 
 
-def init(df, bool_cols=(), int_cols=(), str_cols=()):
-    for col in bool_cols:
-        df[col] = df[col].astype(bool)
+def init(df: pd.DataFrame, cols_dtype: dict, with_fake_values: bool = False):
+    """
+    cols_dtype = {
+        'bool': ['toss', 'end_toss', 'exclude', 'end_exclude']
+    }
 
-    for col in str_cols:
-        df[col] = df[col].astype('str')
+    :param df:
+    :param cols_dtype:
+    :param with_fake_values:
+    :return:
+    """
+    frames = np.arange(0, n_frames)
+    fake_positions = [-1] * n_frames
+    fake_bool = [False] * n_frames
+    if with_fake_values:
+        data = {
+            'frame': frames,
+            'x': fake_positions,
+            'y': fake_positions
+        }
+        df = pd.DataFrame(data=data)
 
-    for col in int_cols:
-        df[col] = df[col].astype('int')
+    for col in ['x', 'y', 'frame']:
+        df[col] = df[col].astype('int32')
 
-    # df['frame'] = df['frame'].astype('int')
-    # df['x'] = df['x'].astype('int')
-    # df['y'] = df['y'].astype('int')
-    # df['shot_type'] = df['shot_type'].astype('int')
-    # df['bounce_point'] = df['bounce_point'].astype('bool')
-    # df['net'] = df['net'].astype('bool')
-    # df['serve_toss'] = df['serve_toss'].astype('bool')
-    # df['rally_start'] = df['rally_start'].astype('bool')
-    # df['rally_end'] = df['rally_end'].astype('bool')
+    for dtype, columns in cols_dtype.items():
+        if dtype == 'int32':
+            fake = np.array([-1] * n_frames)
+            for col in columns:
+                if with_fake_values:
+                    df[col] = fake
+                df[col] = df[col].astype('int')
+        elif dtype == 'bool':
+            for col in columns:
+                if with_fake_values:
+                    df[col] = fake_bool
+                df[col] = df[col].astype(bool)
+
+    return df
+
+
+def save_data(df, save_path):
+    df = df.sort_values(by=['frame'])
+    df.to_csv(save_path, index=False)
+    print(f"data saved automatically in {save_path}")
     return df
 
 
 if __name__ == '__main__':
-    videofile = "videos/rally5.mp4"
+    VIDEO_FILE = "videos/train/t.mp4"
+    CSV_SAVE_PATH = 'labels/train/'
 
-    columns = [
-        'x',
-        'y',
-        'frame',
-        'toss',
-        'toss_end',
-        'exclude',
-        'exclude_end'
-    ]
-    # columns = [
-    #     "frame", "toss", "rally_start",
-    #     "rally_end", "exclude", "exclude_end"
-    # ]
-    msg_columns = [
-        "toss", 'toss_end', "exclude", "exclude_end"
-    ]
+    cols_dtype = {
+        'bool': ['toss', 'toss_end', 'exclude', 'exclude_end']
+    }
 
-    bool_cols = (
-        "toss", 'toss_end', "exclude", "exclude_end"
-    )
-    int_cols = ('x', 'y', 'frame',)
+    msg_cols = ['toss', 'toss_end', 'exclude', 'exclude_end']
 
-    #
-    # cols = [
-    #     'frame', 'x', 'y', 'shot_type',
-    #     'serve_toss', 'rally_start', 'rally_end',
-    #     'bounce_point', 'net'
-    # ]
-    cap = cv2.VideoCapture(videofile)
+    cap = cv2.VideoCapture(VIDEO_FILE)
     assert cap.isOpened(), "file is not opened!"
-    name = Path(videofile).stem
-    filepath = 'labels'
-    save_path = join(filepath, name + '.csv')
+    name = Path(VIDEO_FILE).stem
+
+    save_path = join(CSV_SAVE_PATH, name + '.csv')
 
     w, h, fps, _, n_frames = [int(cap.get(i)) for i in range(3, 8)]
 
     try:
         df = pd.read_csv(save_path)
-        df = init(df, bool_cols=bool_cols, int_cols=int_cols)
+        df = init(df, cols_dtype)
+        print(f"loading from csv file {save_path}")
     except:
-        frames = np.arange(0, n_frames)
-        shot_types = [-1] * n_frames
-        xy = [-1] * n_frames
-        z = [False] * n_frames
-        # data = {
-        #     'frame': frames,
-        #     'x': xy,
-        #     'y': xy,
-        #     'shot_type': xy,
-        #     'serve_toss': z,
-        #     'rally_start': z,
-        #     'rally_end': z,
-        #     'bounce_point': z,
-        #     'net': z
-        # }
-
-        data = {
-            'frame': frames,
-            'x': xy,
-            'y': xy,
-            'toss': z,
-            'toss_end': z,
-            'exclude': z,
-            'exclude_end': z
-        }
-
-        df = pd.DataFrame(data=data)
-        df = init(df, bool_cols=bool_cols, int_cols=int_cols)
+        df = init(None, cols_dtype, with_fake_values=True)
+        print(f"failed to load {save_path}. initializing ......")
 
     current = 0
     frame = to_frame(cap, df, current, n_frames)
@@ -183,17 +170,27 @@ if __name__ == '__main__':
         key = cv2.waitKeyEx(1)  # & 0xFF
         # print(key)
         if key == 27:  # Esc
-            df = df.sort_values(by=['frame'])
-            df.to_csv(save_path, index=False)
+            df = save_data(df, save_path)
+            custom_msg = "Data is saved ..."
+            frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
             break
         elif key == ord('1'):
             df.at[current, 'toss'] = False if df.at[current, "toss"] else True
+            print(current, f" toss: {df.at[current, 'toss']}")
+            frame = to_frame(cap, df, current, n_frames, save=True)
         elif key == ord('2'):
             df.at[current, 'toss_end'] = False if df.at[current, "toss_end"] else True
+            frame = to_frame(cap, df, current, n_frames, save=True)
+            print(current, f" toss_end: {df.at[current, 'toss_end']}")
         elif key == ord('3'):
             df.at[current, 'exclude'] = False if df.at[current, "exclude"] else True
+            frame = to_frame(cap, df, current, n_frames, save=True)
+            print(current, f" exclude: {df.at[current, 'exclude']}")
         elif key == ord('4'):
             df.at[current, 'exclude_end'] = False if df.at[current, "exclude_end"] else True
+            frame = to_frame(cap, df, current, n_frames, save=True)
+            print(current, f" exclude_end: {df.at[current, 'exclude_end']}")
+
         # elif key == ord('5'):
         #     df.at[current, 'serve_toss'] = False if df.iloc[current].serve_toss else True
         # elif key == ord('6'):
@@ -212,9 +209,9 @@ if __name__ == '__main__':
         #     df.at[current, 'x'] = -1
         #     df.at[current, 'y'] = -1
         elif key == ord('s'):
-            df = df.sort_values(by=['frame'])
-            df.to_csv(save_path, index=False)
-            print(f"saved csv in {save_path}")
+            df = save_data(df, save_path)
+            custom_msg = "Data is saved ..."
+            frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
         elif key == ord("d"):  # jump 1 frame
             check = current + SKIP1
             is_ok = check_fno(check, n_frames)
