@@ -130,7 +130,7 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "videos/train/t.mp4"
+    VIDEO_FILE = "videos/train/z.mp4"
     CSV_SAVE_PATH = 'labels/train/'
 
     cols_dtype = {
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
     SKIP1 = 1
     SKIP2 = 10
-    SKIP3 = 500
+    SKIP3 = 200
 
     while True:
         # frame = cv2.resize(frame, (w, h))
