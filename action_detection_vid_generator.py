@@ -6,6 +6,7 @@ from pathlib import Path
 from natsort import natsorted
 import random as r
 
+
 def get_serve_videos(df, save_path, filename):
     toss = df[df.toss].frame.tolist()
     end_toss = df[df.toss_end].frame.tolist()
@@ -18,7 +19,7 @@ def get_serve_videos(df, save_path, filename):
 
     st_end_pairs = list(zip(toss, end_toss))
 
-    for (start_frame, end_frame) in st_end_pairs:
+    for (start_frame, end_frame) in tqdm(st_end_pairs, desc="processing serves"):
         name = join(save_path, filename + f'_{start_frame}_{end_frame}.mp4')
         writer = cv2.VideoWriter(name, codec, fps, (w, h))
         for fno in range(start_frame, end_frame):
@@ -88,7 +89,7 @@ def get_no_serves(df, save_path, filename, clip_length=60, quota=100):
 
     all_clips = r.choices(all_clips, k=quota) if quota < len(all_clips) else all_clips
 
-    for i, clip in enumerate(all_clips):
+    for i, clip in enumerate(tqdm(all_clips, desc='processing no_serves')):
         frame_1st = clip[0]
         frame_last = clip[-1]
         name = join(save_path, filename + f'_{frame_1st}_{frame_last}.mp4')

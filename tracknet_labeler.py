@@ -130,7 +130,7 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "videos/train/a.mp4"
+    VIDEO_FILE = "videos/train/m.mp4"
     CSV_SAVE_PATH = 'labels/train/'
 
     cols_dtype = {
