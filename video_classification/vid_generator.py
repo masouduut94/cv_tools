@@ -122,8 +122,8 @@ def get_no_serves(df, save_path, filename, clip_length=60, quota=100):
 if __name__ == '__main__':
 
     # Generate Train data
-    train_videos = natsorted(list(Path('videos/train').glob('*.mp4')), key=lambda x: x.as_posix())
-    train_csvs = natsorted(list(Path('labels/train').glob('*.csv')), key=lambda x: x.as_posix())
+    train_videos = natsorted(list(Path('../videos/train').glob('*.mp4')), key=lambda x: x.as_posix())
+    train_csvs = natsorted(list(Path('../labels/train').glob('*.csv')), key=lambda x: x.as_posix())
     train_serve = 'test_algo/train/serve'
     train_noserve = 'test_algo/train/no_serve'
 
@@ -136,8 +136,8 @@ if __name__ == '__main__':
         get_no_serves(df, train_noserve, vid.as_posix(), clip_length=30, quota=20)
 
     # Generate test data
-    test_videos = natsorted(list(Path('videos/test').glob('*.mp4')), key=lambda x: x.as_posix())
-    test_csvs = natsorted(list(Path('labels/test').glob('*.csv')), key=lambda x: x.as_posix())
+    test_videos = natsorted(list(Path('../videos/test').glob('*.mp4')), key=lambda x: x.as_posix())
+    test_csvs = natsorted(list(Path('../labels/test').glob('*.csv')), key=lambda x: x.as_posix())
     test_serve = 'data/test/serve'
     test_noserve = 'data/test/no_serve'
 
