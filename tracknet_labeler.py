@@ -8,6 +8,11 @@ import pandas as pd
 Data must be like this:
 frame | x | y | toss | end_toss | exclude | exclude-end
 """
+SKIP1 = 1
+SKIP2 = 10
+SKIP_WHEEL = 15
+SKIP3 = 200
+
 
 
 def check_fno(fno, total_frame):
@@ -20,7 +25,7 @@ def check_fno(fno, total_frame):
     Returns:
 
     """
-    if fno <= 0:
+    if fno < 0:
         print('\nInvaild !!! Jump to first image...')
         return False
     elif fno > total_frame:
@@ -30,22 +35,25 @@ def check_fno(fno, total_frame):
         return True
 
 
-def to_frame(cap, df, n, total_frame, save=False, custom_msg=None):
-    print('current frame: ', n)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, n)
+def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
+    global current
+    print('current frame: ', current_fno)
+    if check_fno(current_fno, total_frame):
+        current = current_fno
+    cap.set(cv2.CAP_PROP_POS_FRAMES, current)
     ret, frame = cap.read()
     if save:
         save_data(df, save_path)
         print("The data is saved")
-    if not (n >= total_frame):
-        message = init_message(df, n, msg_cols, custom_msg)
+    if not (current >= total_frame):
+        message = init_message(df, current, msg_cols, custom_msg)
     else:
         df = save_data(df, save_path)
         print("frame index bigger than number of frames.")
     if not ret:
         return None
     else:
-        cv2.putText(frame, f'Frame: {n}/{total_frame}', (20, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+        cv2.putText(frame, f'Frame: {current}/{total_frame}', (20, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
         if message != '':
             cv2.putText(frame, message, (100, 400), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
         item = df.iloc[current]
@@ -62,9 +70,27 @@ def click_and_crop(event, x, y, flags, param):
     global data, cap, current
     global frame
 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        df.at[current, 'x'] = x
-        df.at[current, 'y'] = y
+    # if event == cv2.EVENT_LBUTTONDOWN:
+    #     df.at[current, 'x'] = x
+    #     df.at[current, 'y'] = y
+    #     frame = to_frame(cap, df, current, n_frames)
+    # cv2.EVENT_FLAG_CTRLKEY = 8
+
+    if event == cv2.EVENT_MOUSEWHEEL:
+        print(flags)
+        if flags == 7864320:
+            current += SKIP1
+        elif flags == -7864320:
+            current -= SKIP1
+        elif flags == 7864328:
+            current += SKIP2
+        elif flags == -7864312:
+            current -= SKIP2
+        elif flags == 7864336:
+            current += SKIP3
+        elif flags == -7864304:
+            current -= SKIP3
+        # current = (current + SKIP_WHEEL) if flags > 0 else (current - SKIP_WHEEL)
         frame = to_frame(cap, df, current, n_frames)
 
 
@@ -130,8 +156,8 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "videos/train/m.mp4"
-    CSV_SAVE_PATH = 'labels/train/'
+    VIDEO_FILE = "to_label/dd.mp4"
+    CSV_SAVE_PATH = 'to_label/'
 
     cols_dtype = {
         'bool': ['toss', 'toss_end', 'exclude', 'exclude_end']
@@ -158,11 +184,9 @@ if __name__ == '__main__':
     current = 0
     frame = to_frame(cap, df, current, n_frames)
     cv2.namedWindow("image", cv2.WINDOW_AUTOSIZE)
-    # cv2.setMouseCallback("image", click_and_crop)
+    cv2.setMouseCallback("image", click_and_crop)
 
-    SKIP1 = 1
-    SKIP2 = 10
-    SKIP3 = 200
+
 
     while True:
         # frame = cv2.resize(frame, (w, h))
@@ -190,7 +214,10 @@ if __name__ == '__main__':
             df.at[current, 'exclude_end'] = False if df.at[current, "exclude_end"] else True
             frame = to_frame(cap, df, current, n_frames, save=True)
             print(current, f" exclude_end: {df.at[current, 'exclude_end']}")
-
+        elif key == ord('s'):
+            df = save_data(df, save_path)
+            custom_msg = "Data is saved ..."
+            frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
         # elif key == ord('5'):
         #     df.at[current, 'serve_toss'] = False if df.iloc[current].serve_toss else True
         # elif key == ord('6'):
@@ -208,53 +235,29 @@ if __name__ == '__main__':
         #     # Restart the values
         #     df.at[current, 'x'] = -1
         #     df.at[current, 'y'] = -1
-        elif key == ord('s'):
-            df = save_data(df, save_path)
-            custom_msg = "Data is saved ..."
-            frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
-        elif key == ord("d"):  # jump 1 frame
-            check = current + SKIP1
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
-        elif key == ord("e"):  # => jump next 20 frame
-            check = current + SKIP2
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
-        elif key == ord("c"):  # <= jump next 300 frames
-            check = current + SKIP3
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
-        elif key == ord("a"):  # jump back 1 frame
-            check = current - SKIP1
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
-        elif key == ord("q"):  # jump back 20 frame
-            check = current - SKIP2
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
-        elif key == ord("z"):  # jump back 300 frame
-            check = current - SKIP3
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
+
+        # elif key == ord("d"):  # jump 1 frame
+        #     check = current + SKIP1
+        #     frame = to_frame(cap, df, check, n_frames)
+        # elif key == ord("e"):  # => jump next 20 frame
+        #     check = current + SKIP2
+        #     frame = to_frame(cap, df, check, n_frames)
+        # elif key == ord("c"):  # <= jump next 300 frames
+        #     check = current + SKIP3
+        #     frame = to_frame(cap, df, check, n_frames)
+        # elif key == ord("a"):  # jump back 1 frame
+        #     check = current - SKIP1
+        #     frame = to_frame(cap, df, check, n_frames)
+        # elif key == ord("q"):  # jump back 20 frame
+        #     check = current - SKIP2
+        #     frame = to_frame(cap, df, check, n_frames)
+        # elif key == ord("z"):  # jump back 300 frame
+        #     check = current - SKIP3
+        #     frame = to_frame(cap, df, check, n_frames)
         elif key == ord("f"):  # jump back 300 frame
             try:
                 check = int(input('Enter your frame:'))
             except:
                 print("not a valid number.")
                 check = current
-            is_ok = check_fno(check, n_frames)
-            if is_ok:
-                current = check
-            frame = to_frame(cap, df, current, n_frames)
+            frame = to_frame(cap, df, check, n_frames)
