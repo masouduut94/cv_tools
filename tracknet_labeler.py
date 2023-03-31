@@ -1,3 +1,5 @@
+from typing import Union
+
 import cv2
 from pathlib import Path
 from os.path import join
@@ -12,7 +14,6 @@ SKIP1 = 1
 SKIP2 = 10
 SKIP_WHEEL = 15
 SKIP3 = 200
-
 
 
 def check_fno(fno, total_frame):
@@ -65,16 +66,49 @@ def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
         return frame
 
 
+def go_to_next(df: pd.DataFrame, column: str, value: bool, current: int, return_last=False):
+    next_indexes = df.index[df.frame > current]
+    msg = f"no more `{column}` after current value"
+    if not len(next_indexes):
+        print(msg)
+        return None, msg
+
+    temp = df[(df[column] == value) & (df.index.isin(next_indexes))]
+    if len(temp):
+        if return_last:
+            return temp.iloc[-1].frame, ""
+        return temp.iloc[0].frame, ""
+    else:
+        print(msg)
+        return None, msg
+
+
+def go_to_previous(df: pd.DataFrame, column: str, value: bool, current: int, return_first=False):
+    next_indexes = df.index[df.frame < current]
+    msg = f"no more `{column}` before current value"
+    if not len(next_indexes):
+        print(msg)
+        return None, msg
+
+    temp = df[(df[column] == value) & (df.index.isin(next_indexes))]
+    if len(temp):
+        if return_first:
+            return temp.iloc[0].frame, ""
+        return temp.iloc[-1].frame, ""
+    else:
+        print(msg)
+        return None, msg
+
+
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
     global data, cap, current
     global frame
 
-    # if event == cv2.EVENT_LBUTTONDOWN:
-    #     df.at[current, 'x'] = x
-    #     df.at[current, 'y'] = y
-    #     frame = to_frame(cap, df, current, n_frames)
-    # cv2.EVENT_FLAG_CTRLKEY = 8
+    if event == cv2.EVENT_LBUTTONDOWN:
+        df.at[current, 'x'] = x
+        df.at[current, 'y'] = y
+        frame = to_frame(cap, df, current, n_frames)
 
     if event == cv2.EVENT_MOUSEWHEEL:
         print(flags)
@@ -144,7 +178,6 @@ def init(df: pd.DataFrame, cols_dtype: dict, with_fake_values: bool = False):
                 if with_fake_values:
                     df[col] = fake_bool
                 df[col] = df[col].astype(bool)
-
     return df
 
 
@@ -156,8 +189,8 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "to_label/dd.mp4"
-    CSV_SAVE_PATH = 'to_label/'
+    VIDEO_FILE = "E:/TVConal/TableTennis/codes/to_annotate/kk.mp4"
+    CSV_SAVE_PATH = 'E:/TVConal/TableTennis/codes/to_annotate/'
 
     cols_dtype = {
         'bool': ['toss', 'toss_end', 'exclude', 'exclude_end']
@@ -185,8 +218,6 @@ if __name__ == '__main__':
     frame = to_frame(cap, df, current, n_frames)
     cv2.namedWindow("image", cv2.WINDOW_AUTOSIZE)
     cv2.setMouseCallback("image", click_and_crop)
-
-
 
     while True:
         # frame = cv2.resize(frame, (w, h))
@@ -218,43 +249,32 @@ if __name__ == '__main__':
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
-        # elif key == ord('5'):
-        #     df.at[current, 'serve_toss'] = False if df.iloc[current].serve_toss else True
-        # elif key == ord('6'):
-        #     if df.iloc[current].shot_type == -1:
-        #         df.at[current, 'shot_type'] = 0
-        #         print("shot type: ForeHand")
-        #     elif df.iloc[current].shot_type == 0:
-        #         df.at[current, 'shot_type'] = 1
-        #         print("shot type: Back-Hand")
-        #     else:
-        #         df.at[current, 'shot_type'] = -1
-        #         print("shot type: Disabled")
+        elif key == ord('t'):
+            next_frame, msg = go_to_next(df, column='toss', value=True, current=current)
+            if next_frame is not None:
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss')
+            else:
+                frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
+        elif key == ord('g'):
+            prev_frame, msg = go_to_previous(df, column='toss', value=True, current=current)
+            if prev_frame is not None:
+                frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss')
+            else:
+                frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
 
-        # elif key == ord('l'):
-        #     # Restart the values
-        #     df.at[current, 'x'] = -1
-        #     df.at[current, 'y'] = -1
-
-        # elif key == ord("d"):  # jump 1 frame
-        #     check = current + SKIP1
-        #     frame = to_frame(cap, df, check, n_frames)
-        # elif key == ord("e"):  # => jump next 20 frame
-        #     check = current + SKIP2
-        #     frame = to_frame(cap, df, check, n_frames)
-        # elif key == ord("c"):  # <= jump next 300 frames
-        #     check = current + SKIP3
-        #     frame = to_frame(cap, df, check, n_frames)
-        # elif key == ord("a"):  # jump back 1 frame
-        #     check = current - SKIP1
-        #     frame = to_frame(cap, df, check, n_frames)
-        # elif key == ord("q"):  # jump back 20 frame
-        #     check = current - SKIP2
-        #     frame = to_frame(cap, df, check, n_frames)
-        # elif key == ord("z"):  # jump back 300 frame
-        #     check = current - SKIP3
-        #     frame = to_frame(cap, df, check, n_frames)
-        elif key == ord("f"):  # jump back 300 frame
+        elif key == ord('q'):
+            next_frame, msg = go_to_next(df, column='toss_end', value=True, current=current)
+            if next_frame is not None:
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss_end')
+            else:
+                frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
+        elif key == ord('a'):
+            prev_frame, msg = go_to_previous(df, column='toss_end', value=True, current=current)
+            if prev_frame is not None:
+                frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss_end')
+            else:
+                frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
+        elif key == ord("f"):
             try:
                 check = int(input('Enter your frame:'))
             except:

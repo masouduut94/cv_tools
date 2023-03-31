@@ -1,5 +1,5 @@
 from os import makedirs
-
+from os.path import isdir
 import cv2
 import random as r
 import pandas as pd
@@ -26,25 +26,26 @@ def get_serve_videos(df, save_path, filename, apply_flip=True):
     transform = A.Compose([A.HorizontalFlip(always_apply=True)])
 
     for (start_frame, end_frame) in tqdm(st_end_pairs, desc="processing serves"):
-        name1 = join(save_path, filename + f'_{start_frame}_{end_frame}.mp4')
-        writer1 = cv2.VideoWriter(name1, codec, fps, (w, h))
+        assert abs(start_frame - end_frame) < 100, f"{filename}, {start_frame}"
+        # name1 = join(save_path, filename + f'_{start_frame}_{end_frame}.mp4')
+        # writer1 = cv2.VideoWriter(name1, codec, fps, (w, h))
 
-        for fno in range(start_frame, end_frame):
-            cap.set(1, fno)
-            status, frame = cap.read()
-            writer1.write(frame)
-            flipped_frame = transform(image=frame)["image"]
-        writer1.release()
+        # for fno in range(start_frame, end_frame):
+        #     cap.set(1, fno)
+        #     status, frame = cap.read()
+        #     writer1.write(frame)
+        #     flipped_frame = transform(image=frame)["image"]
+        # writer1.release()
 
-        if apply_flip:
-            name2 = join(save_path, filename + f'_{start_frame}_{end_frame}_flipped.mp4')
-            writer2 = cv2.VideoWriter(name2, codec, fps, (w, h))
-            for fno in range(start_frame, end_frame):
-                cap.set(1, fno)
-                status, frame = cap.read()
-                flipped_frame = transform(image=frame)["image"]
-                writer2.write(flipped_frame)
-            writer2.release()
+        # if apply_flip:
+        #     name2 = join(save_path, filename + f'_{start_frame}_{end_frame}_flipped.mp4')
+        #     writer2 = cv2.VideoWriter(name2, codec, fps, (w, h))
+        #     for fno in range(start_frame, end_frame):
+        #         cap.set(1, fno)
+        #         status, frame = cap.read()
+        #         flipped_frame = transform(image=frame)["image"]
+        #         writer2.write(flipped_frame)
+        #     writer2.release()
 
 
 def get_frames_in_slices(frames_list, clip_length):
@@ -122,29 +123,37 @@ def get_no_serves(df, save_path, filename, clip_length=60, quota=100):
 if __name__ == '__main__':
 
     # Generate Train data
-    train_videos = natsorted(list(Path('../videos/train').glob('*.mp4')), key=lambda x: x.as_posix())
-    train_csvs = natsorted(list(Path('../labels/train').glob('*.csv')), key=lambda x: x.as_posix())
-    train_serve = 'test_algo/train/serve'
-    train_noserve = 'test_algo/train/no_serve'
+    train_videos = natsorted(list(Path('E:/TVConal/TableTennis/codes/annotated/videos/train/').glob('*.mp4')),
+                             key=lambda x: x.as_posix())
+    train_csvs = natsorted(list(Path('E:/TVConal/TableTennis/codes/annotated/labels/train').glob('*.csv')),
+                           key=lambda x: x.as_posix())
 
-    makedirs(train_serve, exist_ok=True)
-    makedirs(train_noserve, exist_ok=True)
+    train_videos = [i for i in train_videos if i.stem in [
+        'bb', 'cc', 'dd', 'ee', 'ff', 'ii', 'jj', 'kk']]
+    train_csvs = [i for i in train_csvs if i.stem in [
+        'bb', 'cc', 'dd', 'ee', 'ff', 'ii', 'jj', 'kk']]
 
-    for vid, csv in tqdm(list(zip(train_videos[1:2], train_csvs[1:2]))):
+    train_serve = 'E:/TVConal/TableTennis/codes/test_algo/train/serve'
+    train_noserve = 'E:/TVConal/TableTennis/codes/test_algo/train/no_serve'
+
+    # makedirs(train_serve, exist_ok=True)
+    # makedirs(train_noserve, exist_ok=True)
+
+    for vid, csv in tqdm(list(zip(train_videos, train_csvs))):
         df = pd.read_csv(csv.as_posix())
-        get_serve_videos(df, train_serve, vid.as_posix(), apply_flip=True)
-        get_no_serves(df, train_noserve, vid.as_posix(), clip_length=30, quota=20)
+        get_serve_videos(df, train_serve, vid.as_posix(), apply_flip=False)
+        # get_no_serves(df, train_noserve, vid.as_posix(), clip_length=30, quota=1000)
 
     # Generate test data
-    test_videos = natsorted(list(Path('../videos/test').glob('*.mp4')), key=lambda x: x.as_posix())
-    test_csvs = natsorted(list(Path('../labels/test').glob('*.csv')), key=lambda x: x.as_posix())
-    test_serve = 'data/test/serve'
-    test_noserve = 'data/test/no_serve'
-
-    makedirs(test_serve, exist_ok=True)
-    makedirs(test_noserve, exist_ok=True)
-
-    for vid, csv in tqdm(list(zip(test_videos, test_csvs))):
-        df = pd.read_csv(csv.as_posix())
-        get_serve_videos(df, test_serve, vid.as_posix(), apply_flip=False)
-        get_no_serves(df, test_noserve, vid.as_posix(), clip_length=40, quota=60)
+    # test_videos = natsorted(list(Path('../videos/test').glob('*.mp4')), key=lambda x: x.as_posix())
+    # test_csvs = natsorted(list(Path('../labels/test').glob('*.csv')), key=lambda x: x.as_posix())
+    # test_serve = 'data/test/serve'
+    # test_noserve = 'data/test/no_serve'
+    #
+    # makedirs(test_serve, exist_ok=True)
+    # makedirs(test_noserve, exist_ok=True)
+    #
+    # for vid, csv in tqdm(list(zip(test_videos, test_csvs))):
+    #     df = pd.read_csv(csv.as_posix())
+    #     get_serve_videos(df, test_serve, vid.as_posix(), apply_flip=False)
+    #     get_no_serves(df, test_noserve, vid.as_posix(), clip_length=40, quota=60)
