@@ -5,6 +5,7 @@ from pathlib import Path
 from os.path import join
 import numpy as np
 import pandas as pd
+from time import time
 
 """
 Data must be like this:
@@ -14,6 +15,8 @@ SKIP1 = 1
 SKIP2 = 10
 SKIP_WHEEL = 15
 SKIP3 = 200
+BBOX_ANNOTATION = True
+global drag
 
 
 def check_fno(fno, total_frame):
@@ -36,16 +39,13 @@ def check_fno(fno, total_frame):
         return True
 
 
-def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
+def to_frame(cap, df, current_fno, total_frame, custom_msg=None):
     global current
     print('current frame: ', current_fno)
     if check_fno(current_fno, total_frame):
         current = current_fno
     cap.set(cv2.CAP_PROP_POS_FRAMES, current)
     ret, frame = cap.read()
-    if save:
-        save_data(df, save_path)
-        print("The data is saved")
     if not (current >= total_frame):
         message = init_message(df, current, msg_cols, custom_msg)
     else:
@@ -57,12 +57,22 @@ def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
         cv2.putText(frame, f'Frame: {current}/{total_frame}', (20, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
         if message != '':
             cv2.putText(frame, message, (100, 400), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+
         item = df.iloc[current]
-        if item.x != -1:
-            color = (0, 0, 255)
-            x = item.x
-            y = item.y
-            cv2.circle(frame, (x, y), 5, color, thickness=-1)
+        if BBOX_ANNOTATION:
+            if item.x1 != -1:
+                x1 = item.x1
+                x2 = item.x2
+                y1 = item.y1
+                y2 = item.y2
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        else:
+            if item.x != -1:
+                color = (0, 0, 255)
+                x = item.x
+                y = item.y
+                cv2.circle(frame, (x, y), 5, color, thickness=-1)
         return frame
 
 
@@ -104,14 +114,43 @@ def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
     global data, cap, current
     global frame
+    global drag
+    global left_top, right_bottom
+    print(flags)
+    if BBOX_ANNOTATION:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            left_top = (x, y)
+            drag = 1
+            df.at[current, 'x1'] = left_top[0]
+            df.at[current, 'y1'] = left_top[1]
+            print(f"left top: {left_top}")
+            print("drag", drag)
+        elif event == cv2.EVENT_MOUSEMOVE and flags == 1:
+            # frame = to_frame(cap, df, current, n_frames)
+            cap.set(1, current)
+            status, frame = cap.read()
+            cv2.rectangle(frame, left_top, (x, y), (0, 255, 0), 2)
+            # print(f"right bottom: {right_bottom}")
+            # df.at[current, 'x2'] = right_bottom[0]
+            # df.at[current, 'y2'] = right_bottom[1]
+            # frame = to_frame(cap, df, current, n_frames)
+        elif event == cv2.EVENT_LBUTTONUP:
+            drag = 0
+            # right_bottom = (, y)
+            df.at[current, 'x2'] = x
+            df.at[current, 'y2'] = y
+            frame = to_frame(cap, df, current, n_frames)
+            # cv2.rectangle(image, left_top, right_bottom, (0, 255, 0), 2)
+            # cv2.imshow("image", image)
+    else:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            df.at[current, 'x'] = x
+            df.at[current, 'y'] = y
 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        df.at[current, 'x'] = x
-        df.at[current, 'y'] = y
-        frame = to_frame(cap, df, current, n_frames)
+            frame = to_frame(cap, df, current, n_frames)
 
     if event == cv2.EVENT_MOUSEWHEEL:
-        print(flags)
+        # print(flags)
         if flags == 7864320:
             current += SKIP1
         elif flags == -7864320:
@@ -156,15 +195,28 @@ def init(df: pd.DataFrame, cols_dtype: dict, with_fake_values: bool = False):
     fake_positions = [-1] * n_frames
     fake_bool = [False] * n_frames
     if with_fake_values:
-        data = {
-            'frame': frames,
-            'x': fake_positions,
-            'y': fake_positions
-        }
+        if BBOX_ANNOTATION:
+            data = {
+                'frame': frames,
+                'x1': fake_positions,
+                'y1': fake_positions,
+                'x2': fake_positions,
+                'y2': fake_positions
+            }
+        else:
+            data = {
+                'frame': frames,
+                'x': fake_positions,
+                'y': fake_positions
+            }
         df = pd.DataFrame(data=data)
 
-    for col in ['x', 'y', 'frame']:
-        df[col] = df[col].astype('int32')
+    if BBOX_ANNOTATION:
+        for col in ['frame', 'x1', 'y1', 'x2', 'y2']:
+            df[col] = df[col].astype('int32')
+    else:
+        for col in ['frame', 'x', 'y']:
+            df[col] = df[col].astype('int32')
 
     for dtype, columns in cols_dtype.items():
         if dtype == 'int32':
@@ -189,19 +241,18 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "E:/TVConal/TableTennis/codes/to_annotate/kk.mp4"
-    CSV_SAVE_PATH = 'E:/TVConal/TableTennis/codes/to_annotate/'
+    VIDEO_FILE = "data/videos/5.mp4"
+    CSV_SAVE_PATH = 'data/videos'
 
     cols_dtype = {
-        'bool': ['toss', 'toss_end', 'exclude', 'exclude_end']
-    }
+        'bool': ['service', 'service_end', 'set', 'set_end', 'front_spike', 'middle_spike', 'back_spike', 'pipe_spike'],
+        'int32': ['frame', 'x1', 'y1', 'x2', 'y2'] if BBOX_ANNOTATION else ['frame', 'x', 'y']}
 
-    msg_cols = ['toss', 'toss_end', 'exclude', 'exclude_end']
+    msg_cols = ['service', 'service_end', 'set', 'set_end', 'front_spike', 'middle_spike', 'back_spike', 'pipe_spike']
 
     cap = cv2.VideoCapture(VIDEO_FILE)
     assert cap.isOpened(), "file is not opened!"
     name = Path(VIDEO_FILE).stem
-
     save_path = join(CSV_SAVE_PATH, name + '.csv')
 
     w, h, fps, _, n_frames = [int(cap.get(i)) for i in range(3, 8)]
@@ -223,53 +274,70 @@ if __name__ == '__main__':
         # frame = cv2.resize(frame, (w, h))
         cv2.imshow("image", frame)
         key = cv2.waitKeyEx(1)  # & 0xFF
-        # print(key)
-        if key == 27:  # Esc
+        # if key != -1:
+        #     print(key)
+        if key == 27:  # ESC
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
             break
+        if key == 3014656:  # DEL
+            if BBOX_ANNOTATION:
+                df.at[current, "x1"] = -1
+                df.at[current, "x2"] = -1
+                df.at[current, "y1"] = -1
+                df.at[current, "y2"] = -1
+            else:
+                df.at[current, 'x'] = -1
+                df.at[current, 'y'] = -1
+
+            custom_msg = "Data is reset ..."
+            frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
         elif key == ord('1'):
-            df.at[current, 'toss'] = False if df.at[current, "toss"] else True
-            print(current, f" toss: {df.at[current, 'toss']}")
-            frame = to_frame(cap, df, current, n_frames, save=True)
+            df.at[current, 'service'] = False if df.at[current, "service"] else True
+            print(current, f" service: {df.at[current, 'service']}")
+            df = save_data(df, save_path)
+            frame = to_frame(cap, df, current, n_frames)
         elif key == ord('2'):
-            df.at[current, 'toss_end'] = False if df.at[current, "toss_end"] else True
-            frame = to_frame(cap, df, current, n_frames, save=True)
-            print(current, f" toss_end: {df.at[current, 'toss_end']}")
+            df.at[current, 'service_end'] = False if df.at[current, "service_end"] else True
+            df = save_data(df, save_path)
+            frame = to_frame(cap, df, current, n_frames)
+            print(current, f" service_end: {df.at[current, 'service_end']}")
         elif key == ord('3'):
-            df.at[current, 'exclude'] = False if df.at[current, "exclude"] else True
-            frame = to_frame(cap, df, current, n_frames, save=True)
-            print(current, f" exclude: {df.at[current, 'exclude']}")
+            df.at[current, 'set'] = False if df.at[current, "set"] else True
+            df = save_data(df, save_path)
+            frame = to_frame(cap, df, current, n_frames)
+            print(current, f" set: {df.at[current, 'set']}")
         elif key == ord('4'):
-            df.at[current, 'exclude_end'] = False if df.at[current, "exclude_end"] else True
-            frame = to_frame(cap, df, current, n_frames, save=True)
-            print(current, f" exclude_end: {df.at[current, 'exclude_end']}")
+            df.at[current, 'set_end'] = False if df.at[current, "set_end"] else True
+            df = save_data(df, save_path)
+            frame = to_frame(cap, df, current, n_frames)
+            print(current, f" set_end: {df.at[current, 'set_end']}")
         elif key == ord('s'):
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
         elif key == ord('t'):
-            next_frame, msg = go_to_next(df, column='toss', value=True, current=current)
+            next_frame, msg = go_to_next(df, column='set', value=True, current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss')
             else:
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
         elif key == ord('g'):
-            prev_frame, msg = go_to_previous(df, column='toss', value=True, current=current)
+            prev_frame, msg = go_to_previous(df, column='set', value=True, current=current)
             if prev_frame is not None:
                 frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss')
             else:
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
 
         elif key == ord('q'):
-            next_frame, msg = go_to_next(df, column='toss_end', value=True, current=current)
+            next_frame, msg = go_to_next(df, column='service', value=True, current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss_end')
             else:
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
         elif key == ord('a'):
-            prev_frame, msg = go_to_previous(df, column='toss_end', value=True, current=current)
+            prev_frame, msg = go_to_previous(df, column='service_end', value=True, current=current)
             if prev_frame is not None:
                 frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss_end')
             else:

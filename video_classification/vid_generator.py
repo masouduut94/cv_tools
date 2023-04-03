@@ -123,9 +123,9 @@ def get_no_serves(df, save_path, filename, clip_length=60, quota=100):
 if __name__ == '__main__':
 
     # Generate Train data
-    train_videos = natsorted(list(Path('E:/TVConal/TableTennis/codes/annotated/videos/train/').glob('*.mp4')),
+    train_videos = natsorted(list(Path('/data/annotated/videos/train/').glob('*.mp4')),
                              key=lambda x: x.as_posix())
-    train_csvs = natsorted(list(Path('E:/TVConal/TableTennis/codes/annotated/labels/train').glob('*.csv')),
+    train_csvs = natsorted(list(Path('/data/annotated/labels/train').glob('*.csv')),
                            key=lambda x: x.as_posix())
 
     train_videos = [i for i in train_videos if i.stem in [
