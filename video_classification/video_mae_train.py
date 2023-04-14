@@ -1,4 +1,5 @@
 from transformers import VideoMAEFeatureExtractor, VideoMAEForVideoClassification
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 import pytorchvideo.data
 import os
 import imageio
@@ -10,6 +11,20 @@ import torch
 import pathlib
 import evaluate
 import numpy as np
+
+"""
+Data details:
+
+    Train Videos: 19 videos
+    Test Videos: 5 videos
+
+    Serve: 1532
+    No-Serve: 6904
+
+    Batch-Size: 1
+
+
+"""
 
 from pytorchvideo.transforms import (
     ApplyTransformToKey,
@@ -31,8 +46,8 @@ from torchvision.transforms import (
 from transformers import TrainingArguments, Trainer
 
 model_ckpt = "MCG-NJU/videomae-base-finetuned-kinetics"
-batch_size = 2
-dataset_root_path = pathlib.Path("../data/")
+batch_size = 4
+dataset_root_path = pathlib.Path("./fake_data/")
 
 video_count_train = len(list(dataset_root_path.glob("train/*/*.mp4")))
 video_count_val = len(list(dataset_root_path.glob("test/*/*.mp4")))
@@ -79,8 +94,6 @@ train_transform = Compose(
                     UniformTemporalSubsample(num_frames_to_sample),
                     Lambda(lambda x: x / 255.0),
                     Normalize(mean, std),
-                    # RandomHorizontalFlip(p=0.5),
-                    # RandomAutocontrast(p=0.5),
                     Resize(resize_to),
                 ]
             ),
@@ -127,8 +140,8 @@ test_dataset = pytorchvideo.data.Ucf101(
     transform=val_transform,
 )
 
-new_model_name = "serve_detection_flipped_ckpt"
-num_epochs = 8
+new_model_name = "2256_s_5130_n_with_fp"
+num_epochs = 6
 
 args = TrainingArguments(
     new_model_name,
@@ -139,30 +152,37 @@ args = TrainingArguments(
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
     warmup_ratio=0.1,
-    logging_steps=50,
+    logging_steps=100,
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     push_to_hub=False,
     max_steps=(train_dataset.num_videos // batch_size) * num_epochs,
 )
 
-metric = evaluate.load("accuracy")
-recall_metric = evaluate.load("recall")
 
-
-def compute_metrics(eval_pred):
+def compute_metrics(pred):
     """Computes accuracy on a batch of predictions."""
-    predictions = np.argmax(eval_pred.predictions, axis=1)
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='binary')
+    acc = accuracy_score(labels, preds)
+
+    predictions = np.argmax(pred.predictions, axis=1)
 
     # confution matrix
-    labels = ['serve', 'no-serve']
-    cm = confusion_matrix(eval_pred.label_ids, predictions)
+    labels = ['no-serve', 'serve']
+    cm = confusion_matrix(pred.label_ids, predictions)
     df_cfm = pd.DataFrame(cm, index=labels, columns=labels)
     plt.figure(figsize=(10, 7))
     cfm_plot = sn.heatmap(df_cfm, annot=True, cmap='Blues', fmt='g')
     cfm_plot.figure.savefig("confusion_matrix_model.jpg")
 
-    return metric.compute(predictions=predictions, references=eval_pred.label_ids)
+    return {
+        'accuracy': acc,
+        'f1': f1,
+        'precision': precision,
+        'recall': recall
+    }
 
 
 def collate_fn(examples):

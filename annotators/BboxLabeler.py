@@ -241,8 +241,8 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
-    VIDEO_FILE = "data/videos/5.mp4"
-    CSV_SAVE_PATH = 'data/videos'
+    VIDEO_FILE = "data/to_annotate/5.mp4"
+    CSV_SAVE_PATH = 'data/annotate'
 
     cols_dtype = {
         'bool': ['service', 'service_end', 'set', 'set_end', 'front_spike', 'middle_spike', 'back_spike', 'pipe_spike'],
@@ -274,8 +274,8 @@ if __name__ == '__main__':
         # frame = cv2.resize(frame, (w, h))
         cv2.imshow("image", frame)
         key = cv2.waitKeyEx(1)  # & 0xFF
-        # if key != -1:
-        #     print(key)
+        if key != -1:
+            print(key)
         if key == 27:  # ESC
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."

@@ -66,7 +66,7 @@ def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
         return frame
 
 
-def go_to_next(df: pd.DataFrame, column: str, value: bool, current: int, return_last=False):
+def go_to_next(df: pd.DataFrame, column: str, value: Union[bool, int], current: int, return_last=False):
     next_indexes = df.index[df.frame > current]
     msg = f"no more `{column}` after current value"
     if not len(next_indexes):
@@ -83,7 +83,7 @@ def go_to_next(df: pd.DataFrame, column: str, value: bool, current: int, return_
         return None, msg
 
 
-def go_to_previous(df: pd.DataFrame, column: str, value: bool, current: int, return_first=False):
+def go_to_previous(df: pd.DataFrame, column: str, value: Union[bool, int], current: int, return_first=False):
     next_indexes = df.index[df.frame < current]
     msg = f"no more `{column}` before current value"
     if not len(next_indexes):
@@ -112,17 +112,17 @@ def click_and_crop(event, x, y, flags, param):
 
     if event == cv2.EVENT_MOUSEWHEEL:
         print(flags)
-        if flags == 7864320:
+        if flags == 7864320:  # MOUSEWHEEL UP
             current += SKIP1
-        elif flags == -7864320:
+        elif flags == -7864320:  # MOUSEWHEEL DOWN
             current -= SKIP1
-        elif flags == 7864328:
+        elif flags == 7864328:  # CTRL + MOUSEWHEEL UP
             current += SKIP2
-        elif flags == -7864312:
+        elif flags == -7864312:  # CTRL + MOUSEWHEEL DOWN
             current -= SKIP2
-        elif flags == 7864336:
+        elif flags == 7864336:  # SHIFT + MOUSEWHEEL UP
             current += SKIP3
-        elif flags == -7864304:
+        elif flags == -7864304:  # SHIFT + MOUSEWHEEL DOWN
             current -= SKIP3
         # current = (current + SKIP_WHEEL) if flags > 0 else (current - SKIP_WHEEL)
         frame = to_frame(cap, df, current, n_frames)
@@ -189,9 +189,12 @@ def save_data(df, save_path):
 
 
 if __name__ == '__main__':
+    # CHANGE THIS FOR NEW WORK
+    # MAKE SURE YOUR CSV FILE IS SAVED EACH TIME YOU ANNOTATE
     VIDEO_FILE = "E:/TVConal/TableTennis/codes/data/to_annotate/bb.mp4"
     CSV_SAVE_PATH = 'E:/TVConal/TableTennis/codes/data/to_annotate/'
 
+    # CHANGE THIS FOR NEW WORK
     cols_dtype = {
         'bool': ['toss', 'toss_end', 'exclude', 'exclude_end']
     }
@@ -223,25 +226,30 @@ if __name__ == '__main__':
         # frame = cv2.resize(frame, (w, h))
         cv2.imshow("image", frame)
         key = cv2.waitKeyEx(1)  # & 0xFF
-        # print(key)
+        if key != -1:
+            print(key)
         if key == 27:  # Esc
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
             break
         elif key == ord('1'):
+            # CHANGE (toss) FOR NEW WORK
             df.at[current, 'toss'] = False if df.at[current, "toss"] else True
             print(current, f" toss: {df.at[current, 'toss']}")
             frame = to_frame(cap, df, current, n_frames, save=True)
         elif key == ord('2'):
+            # CHANGE (toss_end) FOR NEW WORK
             df.at[current, 'toss_end'] = False if df.at[current, "toss_end"] else True
             frame = to_frame(cap, df, current, n_frames, save=True)
             print(current, f" toss_end: {df.at[current, 'toss_end']}")
         elif key == ord('3'):
+            # CHANGE (exclude) FOR NEW WORK
             df.at[current, 'exclude'] = False if df.at[current, "exclude"] else True
             frame = to_frame(cap, df, current, n_frames, save=True)
             print(current, f" exclude: {df.at[current, 'exclude']}")
         elif key == ord('4'):
+            # CHANGE (exclude_end) FOR NEW WORK
             df.at[current, 'exclude_end'] = False if df.at[current, "exclude_end"] else True
             frame = to_frame(cap, df, current, n_frames, save=True)
             print(current, f" exclude_end: {df.at[current, 'exclude_end']}")
@@ -250,12 +258,14 @@ if __name__ == '__main__':
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
         elif key == ord('t'):
+            # Skip to next `toss` (if annotated before)
             next_frame, msg = go_to_next(df, column='toss', value=True, current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss')
             else:
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
         elif key == ord('g'):
+            # Skip to previous `toss` (if annotated before)
             prev_frame, msg = go_to_previous(df, column='toss', value=True, current=current)
             if prev_frame is not None:
                 frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss')
@@ -263,12 +273,14 @@ if __name__ == '__main__':
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
 
         elif key == ord('q'):
+            # Skip to next `toss_end` (if annotated before)
             next_frame, msg = go_to_next(df, column='toss_end', value=True, current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss_end')
             else:
                 frame = to_frame(cap, df, current, n_frames, custom_msg=msg)
         elif key == ord('a'):
+            # Skip to previous `toss_end` (if annotated before)
             prev_frame, msg = go_to_previous(df, column='toss_end', value=True, current=current)
             if prev_frame is not None:
                 frame = to_frame(cap, df, prev_frame, n_frames, custom_msg='jumping to previous toss_end')
@@ -282,8 +294,21 @@ if __name__ == '__main__':
                 check = current
             frame = to_frame(cap, df, check, n_frames)
         elif key == ord('x'):
+            # Skip to next frame
             check = current + 1
             frame = to_frame(cap, df, check, n_frames)
         elif key == ord('z'):
+            # Skip to previous frame
             check = current - 1
             frame = to_frame(cap, df, check, n_frames)
+
+        elif key == 2555904:
+            # Go to next unlabeled value (Page Down or | arrow)
+            next_frame, msg = go_to_next(df, column='toss', value=True, current=current)
+            if next_frame is not None:
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss')
+        elif key == 2424832:
+            # Go to next unlabeled value (Page Up | <- arrow)
+            next_frame, msg = go_to_previous(df, column='toss', value=True, current=current)
+            if next_frame is not None:
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg='jumping to next toss')
