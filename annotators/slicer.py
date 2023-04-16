@@ -2,7 +2,7 @@ import cv2
 from os.path import join
 from pathlib import Path
 
-VIDEO_NAME = 'E:\\TVConal\\TableTennis\\codes\\data\\test_videos\\test1.mp4'
+VIDEO_NAME = 'E:\\TVConal\\TableTennis\\codes\\data\\annotated\\videos\\train\\a.mp4'
 OUTPUT_PATH = "E:\\TVConal\\TableTennis\\codes\\data\\OUTPUT_VIDEOS"
 cap = cv2.VideoCapture(VIDEO_NAME)
 assert Path(VIDEO_NAME).is_file(), "does not exist..."

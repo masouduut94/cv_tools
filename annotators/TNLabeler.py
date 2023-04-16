@@ -191,7 +191,7 @@ def save_data(df, save_path):
 if __name__ == '__main__':
     # CHANGE THIS FOR NEW WORK
     # MAKE SURE YOUR CSV FILE IS SAVED EACH TIME YOU ANNOTATE
-    VIDEO_FILE = "E:/TVConal/TableTennis/codes/data/to_annotate/bb.mp4"
+    VIDEO_FILE = "E:/TVConal/TableTennis/codes/data/to_annotate/ma_fr.mp4"
     CSV_SAVE_PATH = 'E:/TVConal/TableTennis/codes/data/to_annotate/'
 
     # CHANGE THIS FOR NEW WORK

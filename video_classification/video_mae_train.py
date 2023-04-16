@@ -9,7 +9,6 @@ import seaborn as sn
 from sklearn.metrics import confusion_matrix
 import torch
 import pathlib
-import evaluate
 import numpy as np
 
 """
