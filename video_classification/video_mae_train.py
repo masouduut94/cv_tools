@@ -191,7 +191,7 @@ def collate_fn(examples):
         [example["video"].permute(1, 0, 2, 3) for example in examples]
     )
     labels = torch.tensor([example["label"] for example in examples])
-    return {"pixel_values": pixel_values, "labels": labels}
+    return {"pixel_values": pixel_values, "shot_types": labels}
 
 
 trainer = Trainer(

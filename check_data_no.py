@@ -2,8 +2,8 @@ import pandas as pd
 from pathlib import Path
 
 
-train_csvs = list(Path('data/annotated/labels/train').glob('*.csv'))
-test_csvs = list(Path('data/annotated/labels/test').glob('*.csv'))
+train_csvs = list(Path('data/annotated/serve_detection/train').glob('*.csv'))
+test_csvs = list(Path('data/annotated/serve_detection/test').glob('*.csv'))
 
 count_service = 0
 

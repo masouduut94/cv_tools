@@ -32,7 +32,7 @@ APPLY_UNIQUIFY = False
 CLASSES_UNIQUIFY = False
 
 # Some of files have the same name between all directories.
-# Maybe we could also remove the labels with the background.
+# Maybe we could also remove the shot_types with the background.
 if APPLY_UNIQUIFY:
     for path in tqdm(all_subdirs):
         preprocess_images(path)
@@ -40,7 +40,7 @@ if APPLY_UNIQUIFY:
     print('Images uniquified!')
 
 # This is due to some classes are not mapped to their standard ids:
-# For example we expect {1: 'batsman'} but the labels are {2: 'batsman'} when labeling the items.
+# For example we expect {1: 'batsman'} but the shot_types are {2: 'batsman'} when labeling the items.
 
 if CLASSES_UNIQUIFY:
     for base_path in tqdm(all_subdirs):
@@ -200,7 +200,7 @@ for annot in all_annotations:
 
     annots_union.update(js_with_full_path_keys)
 
-# if background is exluded from labels then
+# if background is exluded from shot_types then
 # delete the images with background annotation
 #
 # images_to_remove = []
@@ -392,7 +392,7 @@ class ImageAnnotations(object):
             allowed_categories = self.CATEGORIES
 
         """
-        Darknet labels starts from 0 to n-1 classes
+        Darknet shot_types starts from 0 to n-1 classes
         So if we assume allowed_categories are [1, 4, 6] then all categories are sth like 
         [1, 2, ..., 10] for example. then we need to map [1, 4, 6] to [0, 1, 2] which 
         darknet is supposed to work with.
@@ -583,7 +583,7 @@ def coco_prepare(new_path_base_dir: str, image_annot_list: list, n_data: int,
 
 def darknet_prepare(new_path_base_dir: str, image_annot_list: list, n_data: int, is_train=True, allowed_categories=()):
     """
-    Move the images to new path and creates the labels for each image in darknet format.
+    Move the images to new path and creates the shot_types for each image in darknet format.
 
     Args:
         new_path_base_dir:
@@ -596,7 +596,7 @@ def darknet_prepare(new_path_base_dir: str, image_annot_list: list, n_data: int,
 
     """
     base_images_dir = join(new_path_base_dir, 'images')
-    base_labels_dir = join(new_path_base_dir, 'labels')
+    base_labels_dir = join(new_path_base_dir, 'shot_types')
 
     if is_train:
         path_to_cp_images = join(base_images_dir, 'train')

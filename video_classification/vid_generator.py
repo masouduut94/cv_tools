@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # Generate Train data
     train_videos = natsorted(list(Path('/data/annotated/videos/train/').glob('*.mp4')),
                              key=lambda x: x.as_posix())
-    train_csvs = natsorted(list(Path('/data/annotated/labels/train').glob('*.csv')),
+    train_csvs = natsorted(list(Path('/data/annotated/shot_types/train').glob('*.csv')),
                            key=lambda x: x.as_posix())
 
     train_videos = [i for i in train_videos if i.stem in [
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     # Generate test data
     # test_videos = natsorted(list(Path('../videos/test').glob('*.mp4')), key=lambda x: x.as_posix())
-    # test_csvs = natsorted(list(Path('../labels/test').glob('*.csv')), key=lambda x: x.as_posix())
+    # test_csvs = natsorted(list(Path('../shot_types/test').glob('*.csv')), key=lambda x: x.as_posix())
     # test_serve = 'data/test/serve'
     # test_noserve = 'data/test/no_serve'
     #
