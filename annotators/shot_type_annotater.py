@@ -54,7 +54,8 @@ def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
         print("The data is saved")
     if not (current >= total_frame):
         message = init_message(df, current, msg_cols, custom_msg)
-        print("MESSAGE:   ", message)
+        if len(message):
+            print("MESSAGE:   ", " | ".join(message))
     else:
         df = save_data(df, save_path)
         print("frame index bigger than number of frames.")
@@ -62,8 +63,10 @@ def to_frame(cap, df, current_fno, total_frame, save=False, custom_msg=None):
         return None
     else:
         cv2.putText(frame, f'Frame: {current}/{total_frame}', (20, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-        if message != '':
-            cv2.putText(frame, message, (100, 400), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+        if len(message):
+            colors = [(0, 255, 0), (255, 255, 0), (255, 0, 0), (0, 0, 255)]
+            for i, (item, color) in enumerate(zip(message, colors)):
+                cv2.putText(frame, item, (100, 300+(i*50)), cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
         item = df.iloc[current]
         if item.x != -1:
             color = (0, 0, 255)
@@ -137,6 +140,7 @@ def click_and_crop(event, x, y, flags, param):
 
 def init_message(df, index, columns, custom_msg=None):
     # data = df.iloc[index]
+    items = []
     st = ''
 
     for col in columns:
@@ -145,17 +149,20 @@ def init_message(df, index, columns, custom_msg=None):
             if val == -1:
                 continue
             reversed_dict = {val: key for (key, val) in all_dicts[col].items()}
-            st += f"{col}: {reversed_dict[val]} | "
+            items.append(f"{col}: {reversed_dict[val]}")
+            # st += f"{col}: {reversed_dict[val]} | "
 
         elif str(df.dtypes[col]).startswith('bool'):
             val = df.at[index, col]
             if val:
-                st += f'{col} flag |'
+                items.append(f'{col} flag')
+                # st += f'{col} flag |'
 
-    st = custom_msg if custom_msg is not None else st
-    print(st)
+    items = items if custom_msg is None else [custom_msg]
+    # st = custom_msg if custom_msg is not None else st
+    # print(st)
 
-    return st
+    return items
 
 
 def init(df: pd.DataFrame, cols_dtype: dict, with_fake_values: bool = False):
