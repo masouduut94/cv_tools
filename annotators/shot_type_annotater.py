@@ -158,7 +158,9 @@ def init_message(df, index, columns, custom_msg=None):
                 items.append(f'{col} flag')
                 # st += f'{col} flag |'
 
-    items = items if custom_msg is None else [custom_msg]
+    if custom_msg:
+        items.insert(0, custom_msg)
+
     # st = custom_msg if custom_msg is not None else st
     # print(st)
 
@@ -365,23 +367,23 @@ if __name__ == '__main__':
             column = 'player'
             next_frame, msg = go_to_next(df, column=column, value=(0, 1), current=current)
             if next_frame is not None:
-                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'next {column}')
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'jumping next {column}')
         elif key == 2424832:
             column = 'player'
             # Go to next unlabeled value (Left Arrow <=)
             next_frame, msg = go_to_previous(df, column=column, value=(0, 1), current=current)
             if next_frame is not None:
-                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'previous {column}')
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'jumping previous {column}')
         elif key == 2490368:
             # Go to next unlabeled value (Up Arrow <=)
             column = 'shot_type'
             next_frame, msg = go_to_next(df, column=column, value=tuple(range(0, 6)), current=current)
             if next_frame is not None:
-                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'next {column}')
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'jumping next {column}')
         elif key == 2621440:
             # Go to previous unlabeled value (Bottom Arrow)
             column = 'shot_type'
             next_frame, msg = go_to_previous(df, column=column, value=tuple(range(0, 5)), current=current)
             if next_frame is not None:
-                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'previous {column}')
+                frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'jumping previous {column}')
 
