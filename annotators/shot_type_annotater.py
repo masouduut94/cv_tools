@@ -8,7 +8,12 @@ import pandas as pd
 
 """
 Data must be like this:
-frame | x | y | toss | end_toss | exclude | exclude-end
+
+'shot_type': 'push', 'lob', 'loop', 'flick'
+'hand_type': 'back-hand' 'fore-hand'
+'player': 'left_player' - 'right_player'
+
+frame | x | y | back-hand/fore-hand/serve | push/lob/loop/flick
 """
 SKIP1 = 1
 SKIP2 = 10
@@ -136,12 +141,11 @@ def init_message(df, index, columns, custom_msg=None):
     for col in columns:
         if str(df.dtypes[col]).startswith('int'):
             val = df.at[index, col]
-            if val <= 0:
+            if val == -1:
                 continue
-            elif val == 1:
-                st += f'{col} : forehand |'
-            elif val == 2:
-                st += f'{col} : backhand |'
+            reversed_dict = {val: key for (key, val) in all_dicts[col].items()}
+            st += f"{col}: {reversed_dict[val]} | "
+
         elif str(df.dtypes[col]).startswith('bool'):
             val = df.at[index, col]
             if val:
@@ -181,10 +185,9 @@ def init(df: pd.DataFrame, cols_dtype: dict, with_fake_values: bool = False):
 
     for dtype, columns in cols_dtype.items():
         if dtype == 'int':
-            fake = np.array([0] * n_frames)
             for col in columns:
                 if with_fake_values:
-                    df[col] = fake
+                    df[col] = fake_positions
                 df[col] = df[col].astype('int')
         elif dtype == 'bool':
             for col in columns:
@@ -201,21 +204,60 @@ def save_data(df, save_path):
     return df
 
 
+def toggle(df: pd.DataFrame, current: int, col: str, col_dict: dict):
+    current_val = df.at[current, col]
+    values = list(col_dict.values())
+    keys = list(col_dict.keys())
+    reversed_dict = {k: v for k, v in zip(values, keys)}
+    next_val = current_val + 1
+    try:
+        reversed_dict[next_val]
+    except KeyError:
+        next_val = 0
+    df.at[current, col] = next_val
+    return reversed_dict[next_val]
+
+
 if __name__ == '__main__':
     # CHANGE THIS FOR NEW WORK
     # MAKE SURE YOUR CSV FILE IS SAVED EACH TIME YOU ANNOTATE
-    VIDEO_FILE = "E:\\TVConal\\TableTennis\\codes\\data\\annotated\\videos\\train\\bb.mp4"
+    VIDEO_FILE = "E:\\TVConal\\TableTennis\\codes\\data\\annotated\\videos\\train\\cc.mp4"
     CSV_SAVE_PATH = 'E:\\TVConal\\TableTennis\\codes\\data\\annotated\\shot_types\\train'
 
     # CHANGE THIS FOR NEW WORK
     # if left_player == 1 => forehand - if == 2 => backhand
     # if right_player == 1 => forehand | - if == 2 => backhand
+
+    all_dicts = {
+        "shot_type" :
+            {
+                'serve': 0,
+                'push': 1,
+                'loop': 2,
+                'flick': 3,
+                'lob': 4
+            },
+        "hand_type":
+            {
+                'backhand': 0,
+                'forehand': 1
+            },
+        "player" :
+            {
+                'left': 0,
+                'right': 1
+            }
+    }
+
+
+
+
     cols_dtype = {
-        'int': ['left_player', 'right_player'],
+        'int': ['player', 'hand_type', 'shot_type'],
         'bool': ['exclude', 'exclude_end']
     }
 
-    msg_cols = ['left_player', 'right_player', 'exclude', 'exclude_end']
+    msg_cols = ['player', 'hand_type', 'shot_type', 'exclude', 'exclude_end']
 
     cap = cv2.VideoCapture(VIDEO_FILE)
     assert cap.isOpened(), "file is not opened!"
@@ -244,45 +286,52 @@ if __name__ == '__main__':
         key = cv2.waitKeyEx(1)  # & 0xFF
         if key != -1:
             print(key)
+
         if key == 27:  # Esc
             df = save_data(df, save_path)
             custom_msg = "Data is saved ..."
             frame = to_frame(cap, df, current, n_frames, custom_msg=custom_msg)
             break
-        elif key == ord('1'):
-            # Toggle between values 0, 1, 2
-            col = 'left_player'
-            output = ''
-            val = df.at[current, col]
-            if val == 0:
-                df.at[current, col] = 1  # Set as forehand
-                output = f'{col}: forehand'
-            elif val == 1:
-                df.at[current, col] = 2  # Set as backhand
-                output = f'{col}: backhand'
-            else:
-                df.at[current, col] = 0
-                output = ''
 
+        elif key == ord('1'):
+            # Toggle between player values
+            # 1, 2
+            col = 'player'
+            output = ''
+            output = toggle(df, current, col, all_dicts[col])
             print(current, f"{output}")
             frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+
         elif key == ord('2'):
             # Toggle between values 0, 1, 2
-            col = 'right_player'
+            col = 'hand_type'
             output = ''
-            val = df.at[current, col]
-            if val == 0:
-                df.at[current, col] = 1  # Set as forehand
-                output = f'{col}: forehand'
-            elif val == 1:
-                df.at[current, col] = 2  # Set as backhand
-                output = f'{col}: backhand'
-            else:
-                df.at[current, col] = 0
-                output = ''
-
+            output = toggle(df, current, col, all_dicts[col])
             print(current, f"{output}")
             frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+
+        elif key == ord('3'):
+            # Toggle between values 0, 1, 2
+            col = 'shot_type'
+            output = 'shot: '
+            shot_type = toggle(df, current, col, all_dicts[col])
+            output += shot_type
+            print(current, f"{output}")
+            frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+
+        elif key == ord('4'):
+            # CHANGE (toss_end) FOR NEW WORK
+            col = 'exclude'
+            df.at[current, col] = False if df.at[current, col] else True
+            frame = to_frame(cap, df, current, n_frames, save=True)
+            print(current, f" {col}: {df.at[current, col]}")
+
+        elif key == ord('5'):
+            # CHANGE (toss_end) FOR NEW WORK
+            col = 'exclude_end'
+            df.at[current, col] = False if df.at[current, col] else True
+            frame = to_frame(cap, df, current, n_frames, save=True)
+            print(current, f" {col}: {df.at[current, col]}")
 
         elif key == ord('s'):
             df = save_data(df, save_path)
@@ -303,19 +352,6 @@ if __name__ == '__main__':
             # Skip to previous frame
             check = current - 1
             frame = to_frame(cap, df, check, n_frames)
-        elif key == ord('3'):
-            # CHANGE (toss_end) FOR NEW WORK
-            col = 'exclude'
-            df.at[current, col] = False if df.at[current, col] else True
-            frame = to_frame(cap, df, current, n_frames, save=True)
-            print(current, f" {col}: {df.at[current, col]}")
-
-        elif key == ord('4'):
-            # CHANGE (toss_end) FOR NEW WORK
-            col = 'exclude_end'
-            df.at[current, col] = False if df.at[current, col] else True
-            frame = to_frame(cap, df, current, n_frames, save=True)
-            print(current, f" {col}: {df.at[current, col]}")
 
         elif key == 2555904:
             # Go to next unlabeled value (Right Arrow =>)
