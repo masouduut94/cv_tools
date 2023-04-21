@@ -19,6 +19,7 @@ SKIP1 = 1
 SKIP2 = 10
 SKIP_WHEEL = 15
 SKIP3 = 200
+INTEGER_DEFAULT = -1
 
 
 def check_fno(fno, total_frame):
@@ -213,7 +214,7 @@ def toggle(df: pd.DataFrame, current: int, col: str, col_dict: dict):
     try:
         reversed_dict[next_val]
     except KeyError:
-        next_val = 0
+        next_val = INTEGER_DEFAULT
     df.at[current, col] = next_val
     return reversed_dict[next_val]
 
@@ -229,8 +230,9 @@ if __name__ == '__main__':
     # if right_player == 1 => forehand | - if == 2 => backhand
 
     all_dicts = {
-        "shot_type" :
+        "shot_type":
             {
+                'none': -1,
                 'serve': 0,
                 'push': 1,
                 'loop': 2,
@@ -239,18 +241,17 @@ if __name__ == '__main__':
             },
         "hand_type":
             {
+                'none': -1,
                 'backhand': 0,
                 'forehand': 1
             },
-        "player" :
+        "player":
             {
+                'none': -1,
                 'left': 0,
                 'right': 1
             }
     }
-
-
-
 
     cols_dtype = {
         'int': ['player', 'hand_type', 'shot_type'],
@@ -298,26 +299,21 @@ if __name__ == '__main__':
             # 1, 2
             col = 'player'
             output = ''
-            output = toggle(df, current, col, all_dicts[col])
-            print(current, f"{output}")
-            frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+            _ = toggle(df, current, col, all_dicts[col])
+            frame = to_frame(cap, df, current, n_frames, save=True)
 
         elif key == ord('2'):
             # Toggle between values 0, 1, 2
             col = 'hand_type'
-            output = ''
-            output = toggle(df, current, col, all_dicts[col])
-            print(current, f"{output}")
-            frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+            _ = toggle(df, current, col, all_dicts[col])
+            frame = to_frame(cap, df, current, n_frames, save=True)
 
         elif key == ord('3'):
             # Toggle between values 0, 1, 2
             col = 'shot_type'
             output = 'shot: '
-            shot_type = toggle(df, current, col, all_dicts[col])
-            output += shot_type
-            print(current, f"{output}")
-            frame = to_frame(cap, df, current, n_frames, save=True, custom_msg=output)
+            _ = toggle(df, current, col, all_dicts[col])
+            frame = to_frame(cap, df, current, n_frames, save=True)
 
         elif key == ord('4'):
             # CHANGE (toss_end) FOR NEW WORK
