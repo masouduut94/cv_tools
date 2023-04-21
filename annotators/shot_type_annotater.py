@@ -242,9 +242,9 @@ if __name__ == '__main__':
                 'none': -1,
                 'serve': 0,
                 'push': 1,
-                'loop': 2,
-                'flick': 3,
-                'lob': 4
+                'flat': 2,
+                'drive(loop)': 3,
+                'flick': 4,
             },
         "hand_type":
             {
@@ -274,16 +274,20 @@ if __name__ == '__main__':
     save_path = join(CSV_SAVE_PATH, name + '.csv')
 
     w, h, fps, _, n_frames = [int(cap.get(i)) for i in range(3, 8)]
+    current = 0
 
     try:
         df = pd.read_csv(save_path)
         df = init(df, cols_dtype)
+        column = 'player'
+        next_frame, msg = go_to_next(df, column=column, value=(0, 1), current=current, return_last=True)
+        if next_frame is not None:
+            frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'next {column}')
         print(f"loading from csv file {save_path}")
     except:
         df = init(None, cols_dtype, with_fake_values=True)
         print(f"failed to load {save_path}. initializing ......")
 
-    current = 0
     frame = to_frame(cap, df, current, n_frames)
     cv2.namedWindow("image", cv2.WINDOW_AUTOSIZE)
     cv2.setMouseCallback("image", click_and_crop)
@@ -358,26 +362,26 @@ if __name__ == '__main__':
 
         elif key == 2555904:
             # Go to next unlabeled value (Right Arrow =>)
-            column = 'left_player'
-            next_frame, msg = go_to_next(df, column=column, value=(1, 2), current=current)
+            column = 'player'
+            next_frame, msg = go_to_next(df, column=column, value=(0, 1), current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'next {column}')
         elif key == 2424832:
-            column = 'left_player'
+            column = 'player'
             # Go to next unlabeled value (Left Arrow <=)
-            next_frame, msg = go_to_previous(df, column=column, value=(1, 2), current=current)
+            next_frame, msg = go_to_previous(df, column=column, value=(0, 1), current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'previous {column}')
         elif key == 2490368:
             # Go to next unlabeled value (Up Arrow <=)
-            column = 'right_player'
-            next_frame, msg = go_to_next(df, column=column, value=(1, 2), current=current)
+            column = 'shot_type'
+            next_frame, msg = go_to_next(df, column=column, value=tuple(range(0, 6)), current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'next {column}')
         elif key == 2621440:
             # Go to previous unlabeled value (Bottom Arrow)
-            column = 'right_player'
-            next_frame, msg = go_to_previous(df, column=column, value=(1, 2), current=current)
+            column = 'shot_type'
+            next_frame, msg = go_to_previous(df, column=column, value=tuple(range(0, 5)), current=current)
             if next_frame is not None:
                 frame = to_frame(cap, df, next_frame, n_frames, custom_msg=f'previous {column}')
 
