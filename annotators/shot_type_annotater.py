@@ -269,66 +269,27 @@ def click_and_crop(event, x, y, flags, param):
 
 
 if __name__ == '__main__':
-    # CHANGE THIS FOR NEW WORK
-    # MAKE SURE YOUR CSV FILE IS SAVED EACH TIME YOU ANNOTATE
-    VIDEO_FILE = "E:\\TVConal\\TableTennis\\codes\\data\\annotated\\videos\\train\\bb.mp4"
+    VIDEO_FILE = "E:\\TVConal\\TableTennis\\codes\\data\\annotated\\videos\\train\\dd.mp4"
     CSV_SAVE_PATH = 'E:\\TVConal\\TableTennis\\codes\\data\\annotated\\shot_types\\train'
 
-    # CHANGE THIS FOR NEW WORK
-    # if left_player == 1 => forehand - if == 2 => backhand
-    # if right_player == 1 => forehand | - if == 2 => backhand
-
-    all_dicts = {
-        "shot_type":
-            {
-                'none': -1,
-                'serve': 0,
-                'push': 1,
-                'flat': 2,
-                'drive(loop)': 3,
-                'flick': 4,
-            },
-        "hand_type":
-            {
-                'none': -1,
-                'backhand': 0,
-                'forehand': 1
-            },
-        "player":
-            {
-                'none': -1,
-                'left': 0,
-                'right': 1
-            }
-    }
-
-    cols_dtype = {
-        'int': ['player', 'hand_type', 'shot_type'],
-        'bool': ['exclude', 'exclude_end']
-    }
-
-    msg_cols = ['player', 'hand_type', 'shot_type', 'exclude', 'exclude_end']
-
     cap = cv2.VideoCapture(VIDEO_FILE)
-    assert cap.isOpened(), "file is not opened!"
+    assert cap.isOpened(), "file is not valid!"
     name = Path(VIDEO_FILE).stem
-
     save_path = join(CSV_SAVE_PATH, name + '.csv')
-
     w, h, fps, _, n_frames = [int(cap.get(i)) for i in range(3, 8)]
     current = 0
 
-    # try:
-    df = pd.read_csv(save_path)
-    df = init(df, cols_dtype, n_frames=n_frames)
-    column = 'player'
-    next_frame, msg = go_to_next(df, column=column, value=(0, 1), current=current, return_last=True)
-    if next_frame is not None:
-        frame = to_frame(cap, df, next_frame, n_frames, save_path=CSV_SAVE_PATH, custom_msg=f'next {column}')
-    print(f"loading from csv file {save_path}")
-    # except:
-    #     df = init(None, cols_dtype, n_frames=n_frames, with_fake_values=True)
-    #     print(f"failed to load {save_path}. initializing ......")
+    try:
+        df = pd.read_csv(save_path)
+        df = init(df, cols_dtype, n_frames=n_frames)
+        column = 'player'
+        next_frame, msg = go_to_next(df, column=column, value=(0, 1), current=current, return_last=True)
+        if next_frame is not None:
+            frame = to_frame(cap, df, next_frame, n_frames, save_path=CSV_SAVE_PATH, custom_msg=f'next {column}')
+        print(f"loading from csv file {save_path}")
+    except FileNotFoundError:
+        df = init(None, cols_dtype, n_frames=n_frames, with_fake_values=True)
+        print(f"failed to load {save_path}. initializing ......")
 
     frame = to_frame(cap, df, current, n_frames, save_path=save_path)
     cv2.namedWindow("image", cv2.WINDOW_AUTOSIZE)
@@ -336,6 +297,7 @@ if __name__ == '__main__':
 
     while True:
         # frame = cv2.resize(frame, (w, h))
+        # frame = cv2.resize(frame, (w//2, h//2))
         cv2.imshow("image", frame)
         key = cv2.waitKeyEx(1)  # & 0xFF
         if key != -1:
